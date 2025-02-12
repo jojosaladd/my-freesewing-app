@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 289.55 318.18">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+      }
+
+      .cls-1, .cls-2 {
+        stroke: #231f20;
+        stroke-miterlimit: 10;
+      }
+
+      .cls-3 {
+        letter-spacing: -.03em;
+      }
+
+      .cls-4 {
+        letter-spacing: 0em;
+      }
+
+      .cls-2 {
+        fill: #fff;
+      }
+
+      .cls-5 {
+        letter-spacing: -.07em;
+      }
+
+      .cls-6 {
+        fill: #231f20;
+        font-family: MyriadPro-Regular, 'Myriad Pro';
+        font-size: 12px;
+      }
+
+      .cls-7 {
+        letter-spacing: 0em;
+      }
+
+      .cls-8 {
+        letter-spacing: -.01em;
+      }
+
+      .cls-9 {
+        letter-spacing: 0em;
+      }
+
+      .cls-10 {
+        letter-spacing: -.01em;
+      }
+
+      .cls-11 {
+        letter-spacing: 0em;
+      }
+
+      .cls-12 {
+        letter-spacing: 0em;
+      }
+    </style>
+  </defs>
+  <path class="cls-2" d="M1.82,111.51s153.3-249.78,287.22,0v206.17H.5L1.82,111.51Z"/>
+  <text class="cls-6" transform="translate(83.76 135.45)"><tspan class="cls-9" x="0" y="0">S</tspan><tspan x="5.99" y="0">ome Slee</tspan><tspan class="cls-4" x="51.91" y="0">v</tspan><tspan x="57.56" y="0">e</tspan><tspan class="cls-10" x="0" y="14.4">C</tspan><tspan x="6.82" y="14.4">ut 2</tspan><tspan class="cls-5" x="0" y="28.8">Y</tspan><tspan x="5.65" y="28.8">am</tspan><tspan class="cls-8" x="21.44" y="28.8">m</tspan><tspan x="31.3" y="28.8">y </tspan><tspan class="cls-3" x="39.49" y="28.8">P</tspan><tspan class="cls-7" x="45.56" y="28.8">a</tspan><tspan x="51.3" y="28.8">t</tspan><tspan class="cls-11" x="55.27" y="28.8">t</tspan><tspan x="59.17" y="28.8">e</tspan><tspan class="cls-12" x="65.18" y="28.8">r</tspan><tspan x="69.15" y="28.8">n</tspan></text>
+  <line class="cls-2" x1="207.11" y1="81.56" x2="207.11" y2="275.39"/>
+  <line class="cls-1" x1="206.67" y1="275.07" x2="220.99" y2="260.75"/>
+  <line class="cls-1" x1="207.11" y1="81.56" x2="190.15" y2="98.52"/>
+  <line class="cls-1" x1="48.08" y1="54.24" x2="54.03" y2="60.19"/>
+  <line class="cls-1" x1="246.76" y1="48.52" x2="241.25" y2="54.02"/>
+</svg>
