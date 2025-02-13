@@ -18,16 +18,28 @@ const FileUpload = () => {
   // Handle file selection & store it properly
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
+  
+    if (!selectedFile) {
+        console.log("DEBUG::::: ❌ No file selected.");
+        return;
+      }
 
-    // If no file is selected, do nothing
-    if (!selectedFile) return;
+    // console.log("DEBUG 2:::: ✅ Selected File:", selectedFile);
 
-    // Generate a preview URL and store it
-    const fileURL = URL.createObjectURL(selectedFile);
-    setFileURL(fileURL);
-    localStorage.setItem("uploadedFile", fileURL); // ✅ Save to localStorage
+  
+    if (selectedFile.type === "image/svg+xml") {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        // console.log("DEBUG:: FileReader Loaded:", e.target.result); // Debugging
+        const svgContent = e.target.result;
+        localStorage.setItem("uploadedSVG", svgContent); // Save SVG content to localStorage
+        setFileURL(svgContent); // Update state with SVG content
+      };
+      reader.readAsText(selectedFile);
+    } else {
+      alert("❌ Please upload an SVG file.");
+    }
   };
-
   //when you press next button
   const handleNext = () => {
     if (fileURL) {
@@ -44,11 +56,18 @@ const FileUpload = () => {
       <input type="file" accept=".svg" onChange={handleFileChange} />
       
       {fileURL && (
-        <div>
-          <p>Local Preview:</p>
-          <iframe src={fileURL} width="300" height="300" title="SVG Preview"></iframe>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", marginTop: "20px", border: "1px solid black" }}>
+            <p>Preview:</p>
+            <iframe
+            srcDoc={`<svg width="100%" height="100%" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">${fileURL}</svg>`}
+            width="200"
+            height="200"
+            style={{ border: "none" }}
+            title="SVG Preview"
+            />
         </div>
-      )}
+     )}
+
 
       {/* ✅ Add a "Next" Button for Navigation */}
       <button 
