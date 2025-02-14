@@ -47,6 +47,98 @@ const EditorCanvas = () => {
   }, []);
 
 
+
+  //Ramer-Douglas-Peucker (RDP)
+  const highlightSimplifiedKeyPoints = (epsilon = 3) => {
+    if (typeof epsilon !== 'number' || isNaN(epsilon)) {
+      console.error("🚨 Invalid epsilon value! Setting default value.");
+      epsilon = 25; // 기본값 설정
+    }
+  
+    const rdpSimplify = (points, epsilon) => {
+      if (points.length < 3) return points;
+  
+      let dmax = 0;
+      let index = 0;
+  
+      for (let i = 1; i < points.length - 1; i++) {
+        let d = perpendicularDistance(points[i], points[0], points[points.length - 1]);
+        if (d > dmax) {
+          index = i;
+          dmax = d;
+        }
+      }
+  
+      console.log(`🔥 Max Distance: ${dmax}, Epsilon Before Adjustment: ${epsilon}`);
+  
+      // ✅ epsilon을 maxDistance와 비교해서 최적화
+      const adjustedEpsilon = Math.min(epsilon, dmax * 2); // 너무 큰 값 방지
+      console.log(`🔄 Adjusted Epsilon: ${adjustedEpsilon}`);
+  
+      if (dmax > adjustedEpsilon) {
+        const recResults1 = rdpSimplify(points.slice(0, index + 1), adjustedEpsilon);
+        const recResults2 = rdpSimplify(points.slice(index), adjustedEpsilon);
+        const result = recResults1.slice(0, -1).concat(recResults2);
+  
+        console.log(`✅ Simplified Points Count: ${result.length}`);
+        return result;
+      } else {
+        console.log(`⚠️ Only keeping first & last points (Too few points kept!)`);
+        return [points[0], points[points.length - 1]];
+      }
+    };
+  
+    const perpendicularDistance = (p, p1, p2) => {
+      const num = Math.abs((p2.y - p1.y) * p.x - (p2.x - p1.x) * p.y + p2.x * p1.y - p2.y * p1.x);
+      const den = Math.sqrt((p2.y - p1.y) ** 2 + (p2.x - p1.x) ** 2);
+      return num / den;
+    };
+  
+    // 기존 표시된 점 삭제
+    paper.project.getItems({ name: "key-point" }).forEach(item => item.remove());
+  
+    const allPaths = paper.project.getItems({ class: paper.Path });
+  
+    allPaths.forEach((path) => {
+      let originalPoints = path.segments.map(segment => segment.point);
+  
+      console.log(`🔍 Checking Path Bounds:`, path.bounds);
+      if (!path.bounds || isNaN(path.bounds.width) || isNaN(path.bounds.height)) {
+        console.warn("⚠️ Path bounds not found or invalid:", path.bounds);
+        return; // bounds가 없으면 스킵
+      }
+  
+      const boundingBox = path.bounds;
+      const width = boundingBox.width;
+      const height = boundingBox.height;
+  
+      if (isNaN(width) || isNaN(height)) {
+        console.error("🚨 Invalid bounding box dimensions!", boundingBox);
+        return;
+      }
+  
+      // ✅ `Adjusted Epsilon`을 너무 크지 않게 제한
+      const adjustedEpsilon = Math.min(epsilon, (width + height) / 10);
+  
+      console.log(`🔄 Final Adjusted Epsilon: ${adjustedEpsilon}`);
+  
+      let simplifiedPoints = rdpSimplify(originalPoints, adjustedEpsilon);
+  
+      // ✅ 필터링된 주요 포인트를 초록색으로 표시
+      simplifiedPoints.forEach(point => {
+        new paper.Path.Circle({
+          center: point,
+          radius: 3,
+          fillColor: 'green',
+          name: "key-point"
+        });
+      });
+    });
+  
+    paper.view.update();
+  };
+  
+  
   const showAnchorPoints = () => {
     if (showingPoints) {
       // 🔥 기존에 생성한 빨간색 점들만 삭제 (SVG는 유지)
@@ -60,6 +152,7 @@ const EditorCanvas = () => {
       const allPaths = paper.project.getItems({ class: paper.Path });
   
       allPaths.forEach((path) => {
+        
         path.segments.forEach((segment) => {
           const point = segment.point;
   
@@ -259,6 +352,8 @@ const handleDeleteKey = (event) => {
         <button onClick={handleRotate} style={{ marginRight: '5px' }}>⟳ Rotate 90°</button>
         <button onClick={handleResetRotation} style={{ marginRight: '5px' }}>↺ Reset Rotation</button>
         <button onClick={showAnchorPoints} style={{ marginRight: '5px' }}>🔴 Show Anchor Points</button>
+        <button onClick={highlightSimplifiedKeyPoints } style={{ marginRight: '5px' }}>Test Button</button>
+
 
       </div>
       <canvas ref={canvasRef} style={{ width: '100%', height: '80vh', background: '#f0f0f0', border: '2px dashed red' }} />
