@@ -3,85 +3,108 @@ import { useNavigate } from "react-router-dom"; // Import navigation function
 
 const FileUpload = () => {
   const [fileURL, setFileURL] = useState("");
+  const [svgContent, setSvgContent] = useState(""); // Store SVG content
+  const [viewBox, setViewBox] = useState("0 0 200 200"); // Default viewBox
   const navigate = useNavigate(); // Hook for navigation
 
   // Load file from localStorage if it exists
   useEffect(() => {
-    const savedFile = localStorage.getItem("uploadedFile");
-    if (savedFile) {
-      setFileURL(savedFile);
-    } else {
-        setFileURL("");
-    }
+    // Clear storage when entering Home page
+    localStorage.removeItem("uploadedSVG");
+    setSvgContent(""); // Reset state
+  
+    console.log("DEBUG:: LocalStorage cleared when entering Home Page");
   }, []);
 
   // Handle file selection & store it properly
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
-  
+
     if (!selectedFile) {
-        console.log("DEBUG::::: ❌ No file selected.");
-        return;
-      }
+      console.log("DEBUG::::: ❌ No file selected.");
+      return;
+    }
 
-    // console.log("DEBUG 2:::: ✅ Selected File:", selectedFile);
-
-  
     if (selectedFile.type === "image/svg+xml") {
       const reader = new FileReader();
       reader.onload = (e) => {
-        // console.log("DEBUG:: FileReader Loaded:", e.target.result); // Debugging
-        const svgContent = e.target.result;
-        localStorage.setItem("uploadedSVG", svgContent); // Save SVG content to localStorage
-        setFileURL(svgContent); // Update state with SVG content
+        let svgText = e.target.result;
+
+        // Extract viewBox if it exists
+        const viewBoxMatch = svgText.match(/viewBox="([\d\s.-]+)"/);
+        if (viewBoxMatch) {
+          setViewBox(viewBoxMatch[1]); // Update viewBox dynamically
+        }
+
+        // Store raw SVG content for preview
+        localStorage.setItem("uploadedSVG", svgText);
+        setSvgContent(svgText);
       };
       reader.readAsText(selectedFile);
     } else {
       alert("❌ Please upload an SVG file.");
     }
   };
+
   //when you press next button
   const handleNext = () => {
-    if (fileURL) {
+    if (svgContent) {
       navigate("/editor"); // Navigate to Editor Page
     } else {
       alert("❌ Please upload a file first!");
     }
   };
 
-
   return (
     <div style={{ textAlign: "center", margin: "20px" }}>
       <h2>Upload Your Pattern File</h2>
       <input type="file" accept=".svg" onChange={handleFileChange} />
       
-      {fileURL && (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", marginTop: "20px", border: "1px solid black" }}>
-            <p>Preview:</p>
-            <iframe
-            srcDoc={`<svg width="100%" height="100%" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">${fileURL}</svg>`}
-            width="200"
-            height="200"
+      {svgContent && (
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+          minHeight: "1000px", // Increased height for better fit
+          marginTop: "20px",
+          border: "1px solid red"  
+        }}>
+          <p>Preview:</p>
+          <iframe
+            srcDoc={`
+              <svg 
+                width="100%" 
+                height="100%" 
+                viewBox="${viewBox}"  // Dynamic viewBox 
+                preserveAspectRatio="xMidYMid meet"
+                style="max-width: 100%; max-height: 100%;"
+              >
+                ${svgContent}
+              </svg>
+            `}
+            width="500"
+            height="950" //SMALL BOX 
             style={{ border: "none" }}
             title="SVG Preview"
-            />
+          />
         </div>
-     )}
+      )}
 
-
-      {/* ✅ Add a "Next" Button for Navigation */}
+      {/* Add a "Next" Button for Navigation */}
       <button 
         onClick={handleNext} 
         style={{ 
           marginTop: "10px", 
           padding: "10px", 
-          background: fileURL ? "#4CAF50" : "#d3d3d3", 
+          background: svgContent ? "#4CAF50" : "#d3d3d3", 
           borderRadius: "10px", 
-          cursor: fileURL ? "pointer" : "not-allowed", 
+          cursor: svgContent ? "pointer" : "not-allowed", 
           color: "white",
           border: "none"
         }}
-        disabled={!fileURL} // ✅ Disable button if no file is uploaded
+        disabled={!svgContent} // Disable button if no file is uploaded
       >
         Next
       </button>
