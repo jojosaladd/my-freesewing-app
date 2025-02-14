@@ -28,6 +28,8 @@ const EditorCanvas = () => {
           const scaleFactor = item.bounds.width / originalSize.current.width;
           setZoomLevel(Math.round(scaleFactor * 100));
           item.position = paper.view.center;
+          logAllElements(); //debug- all paths will be red stroke/ log on console
+          //enableHoverEffect(); // Activate hover effects
 
         },
         onError: (message) => {
@@ -40,6 +42,19 @@ const EditorCanvas = () => {
       paper.project.clear();
     };
   }, []);
+
+  // Debug to get all possible items 
+  const logAllElements = () => {
+    const allItems = paper.project.getItems({}); // Get all items as an array
+    console.log("🔍 Listing all elements in Paper.js:", allItems);
+    
+    allItems.forEach((item, index) => {
+      console.log(`📌 ${index}: ${item.className} - Name: ${item.name || "No Name"}`);
+      if (item instanceof paper.Path || item instanceof paper.PointText) {
+        item.strokeColor = new paper.Color(0, 0, 1); // Set stroke color to blue
+      }
+    });
+  };
 
   // Zoom In Function
   const handleZoomIn = () => {
@@ -90,7 +105,8 @@ const EditorCanvas = () => {
   
     paper.view.update(); // 🔄 Force view update
   };
-  
+
+
   // Rotate 90° Function
   const handleRotate = () => {
     const item = paper.project.activeLayer;
