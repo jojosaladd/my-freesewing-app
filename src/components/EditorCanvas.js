@@ -6,11 +6,14 @@ const EditorCanvas = () => {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [rotationAngle, setRotationAngle] = useState(0);
   const originalSize = useRef(null);
+  const BlueAnchorPoints = []; // 🔵 파란색으로 선택된 포인트 저장
 
   // Panning States
   const isPanning = useRef(false);
   const lastMousePosition = useRef({ x: 0, y: 0 });
   const isSpacePressed = useRef(false);
+
+  let showingPoints = false; // 🔴 점들이 현재 보이는 상태인지 추적
 
   useEffect(() => {
     paper.setup(canvasRef.current);
@@ -28,8 +31,8 @@ const EditorCanvas = () => {
           const scaleFactor = item.bounds.width / originalSize.current.width;
           setZoomLevel(Math.round(scaleFactor * 100));
           item.position = paper.view.center;
-          logAllElements(); //debug- all paths will be red stroke/ log on console
-          //enableHoverEffect(); // Activate hover effects
+         //  logAllElements(); //debug- all paths will be red stroke/ log on console
+         // showAnchorPoints();// show points
 
         },
         onError: (message) => {
@@ -42,6 +45,67 @@ const EditorCanvas = () => {
       paper.project.clear();
     };
   }, []);
+
+
+  const showAnchorPoints = () => {
+    if (showingPoints) {
+      // 🔥 기존에 생성한 빨간색 점들만 삭제 (SVG는 유지)
+      const allCircles = paper.project.getItems({ name: "anchor-point" });
+      allCircles.forEach((circle) => circle.remove());
+  
+      showingPoints = false; // ❌ 점들이 사라진 상태로 변경
+      console.log("🔴 Anchor Points Hidden");
+    } else {
+      // 🔥 점들을 다시 표시
+      const allPaths = paper.project.getItems({ class: paper.Path });
+  
+      allPaths.forEach((path) => {
+        path.segments.forEach((segment) => {
+          const point = segment.point;
+  
+          const circle = new paper.Path.Circle({
+            center: point,
+            radius: 3,
+            fillColor: 'red',
+            name: "anchor-point", // 🔥 점들을 그룹화하여 나중에 쉽게 삭제 가능
+          });
+  
+          circle.data.clicked = false;
+  
+          circle.onClick = () => {
+            circle.data.clicked = !circle.data.clicked;
+            circle.fillColor = circle.data.clicked ? 'blue' : 'red';
+  
+            if (circle.data.clicked) {
+              if (!BlueAnchorPoints.some(p => p.equals(point))) {
+                BlueAnchorPoints.push(point);
+              }
+            } else {
+              const index = BlueAnchorPoints.findIndex(p => p.equals(point));
+              if (index !== -1) {
+                BlueAnchorPoints.splice(index, 1);
+              }
+            }
+  
+            console.log("🔵 Important Anchor Points:", BlueAnchorPoints.map(p => p.toString()));
+          };
+        });
+      });
+  
+      showingPoints = true; // ✅ 점들이 표시된 상태로 변경
+      console.log("🔴 Anchor Points Shown");
+    }
+  
+    paper.view.update(); // 🔥 캔버스 업데이트 확실히 실행
+  };
+  
+
+/// TO-BE : DELETE KEY FUNCTION
+const handleDeleteKey = (event) => {
+  if (event.key === "Delete") {
+    console.log("🗑 Deleting NOT YET IMPLEMENTED");
+  }
+};
 
   // Debug to get all possible items 
   const logAllElements = () => {
@@ -162,6 +226,7 @@ const EditorCanvas = () => {
   };
 
   useEffect(() => {
+    window.addEventListener("keydown", handleDeleteKey);
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     window.addEventListener("mousedown", handleMouseDown);
@@ -172,6 +237,7 @@ const EditorCanvas = () => {
     });
 
     return () => {
+      window.removeEventListener("keydown", handleDeleteKey);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("mousedown", handleMouseDown);
@@ -191,7 +257,9 @@ const EditorCanvas = () => {
         <button onClick={handleFitToScreen} style={{ marginRight: '5px' }}>🔲 Fit to Screen</button>
         <button onClick={handleZoomIn} style={{ marginRight: '5px' }}>➕ Zoom In</button>
         <button onClick={handleRotate} style={{ marginRight: '5px' }}>⟳ Rotate 90°</button>
-        <button onClick={handleResetRotation}>↺ Reset Rotation</button>
+        <button onClick={handleResetRotation} style={{ marginRight: '5px' }}>↺ Reset Rotation</button>
+        <button onClick={showAnchorPoints} style={{ marginRight: '5px' }}>🔴 Show Anchor Points</button>
+
       </div>
       <canvas ref={canvasRef} style={{ width: '100%', height: '80vh', background: '#f0f0f0', border: '2px dashed red' }} />
     </div>
