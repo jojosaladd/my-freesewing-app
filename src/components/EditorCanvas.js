@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import paper from 'paper';
+import PathManipulationButton from "./PathManipulationButton";
 
 const EditorCanvas = () => {
   const canvasRef = useRef(null);
@@ -7,13 +8,17 @@ const EditorCanvas = () => {
   const [rotationAngle, setRotationAngle] = useState(0);
   const originalSize = useRef(null);
   const BlueAnchorPoints = []; // 🔵 파란색으로 선택된 포인트 저장
+  const [selectedPoint, setSelectedPoint] = useState(null); // 선택된 포인트
+  const [position, setPosition] = useState({ x: 0, y: 0 }); // UI 입력 값
+
 
   // Panning States
   const isPanning = useRef(false);
   const lastMousePosition = useRef({ x: 0, y: 0 });
   const isSpacePressed = useRef(false);
 
-  let showingPoints = false; // 🔴 점들이 현재 보이는 상태인지 추적
+  let showingPoints = false; 
+  let activePath = null;
 
   useEffect(() => {
     paper.setup(canvasRef.current);
@@ -33,6 +38,7 @@ const EditorCanvas = () => {
           item.position = paper.view.center;
          //  logAllElements(); //debug- all paths will be red stroke/ log on console
          // showAnchorPoints();// show points
+
 
         },
         onError: (message) => {
@@ -138,79 +144,118 @@ const EditorCanvas = () => {
     paper.view.update();
   };
   
-  // 🖊️ 현재 드로잉 중인 Path 저장
-let activePath = null;
-
-const enablePathManipulation = () => {
-  if (!paper.project) {
-      console.error("❌ Paper.js is not initialized!");
-      return;
-  }
-
-  console.log("✅ Path Manipulation Tool Activated!");
-
-  paper.tool = new paper.Tool();
-  let selectedSegment = null; // 현재 선택된 Segment
-  let selectedHandle = null;  // 현재 선택된 Handle
-
-  // 🖱️ 마우스를 클릭하면 가장 가까운 Anchor / Handle 선택
-  paper.tool.onMouseDown = (event) => {
-      const hit = paper.project.hitTest(event.point, {
-          segments: true,    // Anchor (빨간 점)
-          stroke: true,      // Path의 라인도 감지
-          handles: true,     // Bezier Handle (초록 & 파란 점) 감지
-          tolerance: 10,     // 감지 범위 (조절 가능)
-      });
-
-      if (hit) {
-          if (hit.type === "segment") {
-              selectedSegment = hit.segment;
-              selectedHandle = null;
-              console.log("🎯 Anchor Selected:", selectedSegment.point);
-          } else if (hit.type === "handle-in") {
-              selectedSegment = hit.segment;
-              selectedHandle = "handleIn";
-              console.log("🔧 Handle-In Selected:", selectedSegment.handleIn);
-          } else if (hit.type === "handle-out") {
-              selectedSegment = hit.segment;
-              selectedHandle = "handleOut";
-              console.log("🔧 Handle-Out Selected:", selectedSegment.handleOut);
-          }
-      } else {
-          selectedSegment = null;
-          selectedHandle = null;
-      }
+  
+  const enablePathManipulation = () => {
+    if (!paper.project) {
+        console.error("❌ Paper.js is not initialized!");
+        return;
+    }
+  
+    console.log("✅ Path Manipulation Tool Activated!");
+  
+    paper.tool = new paper.Tool();
+    let selectedSegment = null; // 현재 선택된 Segment
+    let selectedHandle = null;  // 현재 선택된 Handle
+  
+    // 🖱️ 마우스를 클릭하면 가장 가까운 Anchor / Handle 선택
+    paper.tool.onMouseDown = (event) => {
+        const hit = paper.project.hitTest(event.point, {
+            segments: true,    
+            stroke: true,      
+            handles: true,     
+            tolerance: 10,     
+        });
+  
+        if (hit) {
+            if (hit.type === "segment") {
+                selectedSegment = hit.segment;
+                setSelectedPoint(selectedSegment); // ✅ 선택된 포인트 저장
+                setPosition({ x: selectedSegment.point.x, y: selectedSegment.point.y }); // ✅ 현재 좌표 UI에 반영
+                selectedHandle = null;
+                console.log("🎯 Selected Point:", selectedSegment.point);
+                console.log("🎯 Anchor Selected:", selectedSegment.point);
+  
+                // 🔥 Straight Line이면 Handle 숨기기
+                if (selectedSegment.handleIn.isZero() && selectedSegment.handleOut.isZero()) {
+                    selectedSegment.selected = true; // Anchor만 선택
+                    selectedSegment.handleIn = new paper.Point(0, 0);
+                    selectedSegment.handleOut = new paper.Point(0, 0);
+                    console.log("🚫 No Handles (Straight Line)");
+                } else {
+                    console.log("✅ Handles Available (Curve)");
+                }
+            } else if (hit.type === "handle-in") {
+                if (!hit.segment.handleIn.isZero()) {
+                    selectedSegment = hit.segment;
+                    selectedHandle = "handleIn";
+                    console.log("🔧 Handle-In Selected:", selectedSegment.handleIn);
+                }
+            } else if (hit.type === "handle-out") {
+                if (!hit.segment.handleOut.isZero()) {
+                    selectedSegment = hit.segment;
+                    selectedHandle = "handleOut";
+                    console.log("🔧 Handle-Out Selected:", selectedSegment.handleOut);
+                }
+            }
+        } else {
+            selectedSegment = null;
+            selectedHandle = null;
+            setSelectedPoint(null); // 클릭한 곳이 포인트가 아니면 UI 숨김
+        }
+    };
+  
+    // 🎯 마우스를 드래그하면 선택된 Anchor / Handle 이동
+    paper.tool.onMouseDrag = (event) => {
+        if (!selectedSegment) return;
+  
+        if (selectedHandle === "handleIn") {
+            let newHandleIn = event.point.subtract(selectedSegment.point);
+            let handleLength = selectedSegment.handleIn.length;
+            selectedSegment.handleIn = newHandleIn.normalize().multiply(handleLength); // 길이 유지
+        } 
+        else if (selectedHandle === "handleOut") {
+            let newHandleOut = event.point.subtract(selectedSegment.point);
+            let handleLength = selectedSegment.handleOut.length;
+            selectedSegment.handleOut = newHandleOut.normalize().multiply(handleLength); // 길이 유지
+        } 
+        else {
+            let delta = event.delta;
+            selectedSegment.point = selectedSegment.point.add(delta); // 🔥 Anchor 이동
+            if (!selectedSegment.handleIn.isZero() || !selectedSegment.handleOut.isZero()) {
+                selectedSegment.handleIn = selectedSegment.handleIn.add(delta); 
+                selectedSegment.handleOut = selectedSegment.handleOut.add(delta);
+            }
+        }
+        paper.view.update();
+    };
+  
+    // 🟢 마우스를 움직이면 가까운 Anchor / Handle 하이라이트
+    paper.tool.onMouseMove = (event) => {
+        const hit = paper.project.hitTest(event.point, {
+            segments: true,
+            stroke: true,
+            handles: true,
+            tolerance: 10,
+        });
+  
+        paper.project.activeLayer.selected = false;
+        if (hit && hit.segment) {
+            hit.segment.selected = true;
+        }
+    };
   };
+  
+  const handlePositionChange = (e) => {
+    const { name, value } = e.target;
+    setPosition((prev) => ({ ...prev, [name]: parseFloat(value) || 0 }));
+};
 
-  // 🎯 마우스를 드래그하면 선택된 Anchor / Handle 이동
-  paper.tool.onMouseDrag = (event) => {
-      if (!selectedSegment) return;
-
-      if (selectedHandle === "handleIn") {
-          selectedSegment.handleIn = event.point.subtract(selectedSegment.point);
-      } else if (selectedHandle === "handleOut") {
-          selectedSegment.handleOut = event.point.subtract(selectedSegment.point);
-      } else {
-          selectedSegment.point = event.point; // 🔥 Anchor 자체를 이동
-      }
-
-      paper.view.update();
-  };
-
-  // 🟢 마우스를 움직이면 가까운 Anchor / Handle 하이라이트
-  paper.tool.onMouseMove = (event) => {
-      const hit = paper.project.hitTest(event.point, {
-          segments: true,
-          stroke: true,
-          handles: true,
-          tolerance: 10,
-      });
-
-      paper.project.activeLayer.selected = false;
-      if (hit && hit.segment) {
-          hit.segment.selected = true;
-      }
-  };
+const applyPositionChange = () => {
+    if (selectedPoint) {
+        selectedPoint.point = new paper.Point(position.x, position.y);
+        paper.view.update();
+        console.log(`📌 Point moved to: (${position.x}, ${position.y})`);
+    }
 };
 
 const enablePenTool = () => {
@@ -497,11 +542,26 @@ const enablePenTool = () => {
         <button onClick={handleRotate} style={{ marginRight: '5px' }}>⟳ Rotate 90°</button>
         <button onClick={handleResetRotation} style={{ marginRight: '5px' }}>↺ Reset Rotation</button>
         <button onClick={showAnchorPoints} style={{ marginRight: '5px' }}>🔴 Show Anchor Points</button>
-        <button onClick={enablePathManipulation  } style={{ marginRight: '5px' }}>Test Button</button>
-
-
+        <PathManipulationButton 
+                    enablePathManipulation={enablePathManipulation} 
+                />
       </div>
       <canvas ref={canvasRef} style={{ width: '100%', height: '80vh', background: '#f0f0f0', border: '2px dashed red' }} />
+      {selectedPoint && (
+                <div style={{
+                    position: "absolute",
+                    top: `${position.y}px`,
+                    left: `${position.x}px`,
+                    background: "white",
+                    padding: "5px",
+                    border: "1px solid black",
+                    borderRadius: "5px"
+                }}>
+                    <label>X: <input type="number" name="x" value={position.x} onChange={handlePositionChange} /></label>
+                    <label>Y: <input type="number" name="y" value={position.y} onChange={handlePositionChange} /></label>
+                    <button onClick={applyPositionChange}>Move</button>
+                </div>
+            )}
     </div>
   );
 };
